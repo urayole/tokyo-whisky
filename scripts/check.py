@@ -173,16 +173,13 @@ def check_joylab():
                      ("outlet", "https://store-moment.jp/view/item/000000004855")):
         try:
             html = fetch(url)
-            prices = [p for p, _, _ in jsonld_offers(html) if plausible(p)]
-            if not prices:
-                for pat in (r"販売価格[^0-9]{0,40}([0-9]{2},[0-9]{3})", r"([0-9]{2},[0-9]{3})\s*円\s*[（(]税込"):
-                    prices += [yen(m) for m in re.findall(pat, html) if plausible(yen(m))]
-            if not prices:
-                prices = [yen(m) for m in re.findall(r"([0-9]{2},[0-9]{3})\s*円", html) if plausible(yen(m))]
-            cart = bool(re.search(r"カートに入れる|カートへ|cart_in|add_cart|btn_cart", html, re.I))
-            sold = bool(re.search(r"SOLD\s*OUT|売り切れ|品切れ|在庫切れ|在庫がありません", html, re.I))
-            dump("joylab_" + key, html, ["販売価格", "円(税込)", "税込", "SOLD", "カート", "山崎"])
-            out[key] = {"price": prices[0] if prices else None, "available": True if cart else (False if sold else None)}
+            # MakeShop product page: <span data-id="makeshop-item-price:1">22,500</span>円（税込）
+            m = re.search(r'makeshop-item-price:1"[^>]*>\s*([0-9,]+)\s*<', html)
+            price = yen(m.group(1)) if m else None
+            # an in-stock item shows an active cart button; a sold-out one does not
+            active = "goods-cart-btn-active" in html
+            dump("joylab_" + key, html, ["makeshop-item-price", "goods-cart-btn", "soldout"])
+            out[key] = {"price": price if plausible(price) else None, "available": active}
         except Exception as e:
             log("joylab", key, "failed:", e)
     if not out or not any(plausible(v.get("price")) for v in out.values()):
@@ -216,7 +213,8 @@ def check_market():
     try:
         html = fetch("https://amademeshi.info/price_yamazaki12/")
         dump("amademeshi", html, ["現在", "最安", "円"])
-        m = re.search(r"現在[^0-9]{0,30}([0-9]{2},[0-9]{3})", html) or re.search(r"([0-9]{2},[0-9]{3})\s*円", html)
+        # "最新の確認は2026年10月29日3時05分の<strong>25,500円</strong>です"
+        m = re.search(r"最新の確認は[^<]{0,60}<strong>\s*([0-9,]+)\s*円", html)
         if m and plausible(yen(m.group(1))):
             res["amazon"] = yen(m.group(1))
     except Exception as e:

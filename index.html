@@ -86,6 +86,14 @@ dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;font-family:var(
 .mk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 12px var(--mono);color:#fff;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
 .mk.g{background:#2f7a3d}.mk.w{background:#b07a00}.mk.n{background:#7d7466}.mk.b{background:#b0372b}
 .me{width:16px;height:16px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 6px rgba(26,115,232,.25)}
+.shop{display:flex;gap:12px;align-items:flex-start}
+.shop .body{flex:1;min-width:0}
+.shop h3{margin:0;font-size:15px;line-height:1.3}
+.shop .acts{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.shop .acts .btn{min-height:34px;padding:6px 10px;font-size:12.5px}
+.stars{color:var(--amber);font-size:12px;letter-spacing:1px}
+.mk.s{background:#a8650f;width:18px;height:18px;font-size:10px}
+.mk.o{background:#7d7466;width:12px;height:12px;border-width:2px}
 footer{font-size:12px;color:var(--muted);line-height:1.6}
 footer a{color:inherit}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -104,8 +112,13 @@ footer a{color:inherit}
 <main class="wrap" style="margin-top:12px">
   <section class="card best" id="best" aria-live="polite"></section>
   <div id="map" role="img" aria-label="주변 매장 지도"></div>
-  <h2 class="sec">가까운 순서</h2>
+  <h2 class="sec">재고·가격이 보이는 곳 (가까운 순)</h2>
   <section class="list" id="list"></section>
+
+  <h2 class="sec">근처 주류점</h2>
+  <div class="small muted" style="margin:-8px 2px 0">재고 정보는 없지만 들러볼 만한 곳입니다. <b>추천</b>은 일본 위스키 진열로 알려진 곳, <b>지도 검색</b>은 지금 위치 반경 1.5km의 주류 판매점(OpenStreetMap)입니다.</div>
+  <section class="list" id="nearby"></section>
+  <a class="btn" id="gmore" href="#" target="_blank" rel="noopener" style="justify-self:start">구글맵에서 근처 주류점 더 찾기</a>
 
   <h2 class="sec">이 가격, 사도 될까?</h2>
   <section class="card calc">
@@ -134,7 +147,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtY=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 const LIST=17600, FX=8.4;
-let STORES=null, STATUS=null, HIST=[], here=null, hereMode='plan', map, layer, meMarker;
+let STORES=null, STATUS=null, HIST=[], SHOPS=[], OSM=[], osmFor=null, here=null, hereMode='plan', map, layer, meMarker;
 
 function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2200);}
 function jstNow(){const d=new Date(Date.now()+9*3600e3);return {y:d.getUTCFullYear(),mo:d.getUTCMonth()+1,d:d.getUTCDate(),h:d.getUTCHours(),mi:d.getUTCMinutes(),wd:d.getUTCDay(),iso:d.toISOString().slice(0,16)};}
@@ -231,7 +244,59 @@ function render(){
     $('best').innerHTML=`<div class="lbl">지금 가장 좋은 선택</div><h2>지금 열려 있는 재고 매장이 없어요</h2><div class="small muted">영업시간이 지났거나 온라인 재고가 품절입니다. 아래 목록에서 내일 갈 곳을 고르세요.</div>`;
   }
   $('list').innerHTML=rows.map(([s,d])=>storeCard(s,d,best&&best.s===s)).join('');
+  renderNearby();
   drawMap(rows);
+  $('gmore').href=`https://www.google.com/maps/search/${encodeURIComponent('酒屋 ウイスキー')}/@${here.lat},${here.lng},16z`;
+  searchOSM();
+}
+
+function shopOpen(s){if(!s.open||!s.close)return null;return openState({open:s.open,close:s.close,closed:s.closed||[]});}
+function nearbyRows(){
+  const known=STORES.stores.map(s=>({lat:s.lat,lng:s.lng}));
+  const cur=SHOPS.filter(s=>!known.some(k=>dist(k,s)<80)).map(s=>({...s,_src:'cur',_d:dist(here,s)})).sort((a,b)=>a._d-b._d);
+  const curNear=cur.filter(s=>s._d<3000).slice(0,8); const curList=curNear.length?curNear:cur.slice(0,4);
+  const all=[...known,...SHOPS];
+  const osm=OSM.filter(o=>!all.some(k=>dist(k,o)<60)).map(o=>({...o,_src:'osm',_d:dist(here,o)})).sort((a,b)=>a._d-b._d).slice(0,10);
+  return {curList,osm};
+}
+function renderNearby(){
+  const {curList,osm}=nearbyRows();
+  const card=s=>{const os=s._src==='cur'?shopOpen(s):null;
+    const dir=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.lat+','+s.lng)}&travelmode=walking`;
+    const q=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((s.jp||s.name)+' '+(s.addr||''))}`;
+    return `<article class="card shop"><div class="body">
+      <h3>${esc(s.name)}${s._src==='cur'?' <span class="pill warn">추천</span>':' <span class="pill">지도 검색</span>'}</h3>
+      ${s.jp&&s.jp!==s.name?`<div class="small muted">${esc(s.jp)}</div>`:''}
+      <div class="row small" style="margin-top:3px">${s.type?`<span class="pill">${esc(s.type)}</span>`:''}${s.whisky?`<span class="stars" title="일본 위스키 진열">${'★'.repeat(s.whisky)}${'☆'.repeat(3-s.whisky)}</span>`:''}${os?`<span class="pill ${os.cls}">${os.txt}</span>`:''}${s.taxFree===true?'<span class="pill good">면세</span>':''}</div>
+      ${s.note?`<div class="small muted" style="margin-top:3px">${esc(s.note)}</div>`:''}
+      ${s.hours?`<div class="small muted">영업 ${esc(s.hours)}</div>`:''}
+    </div><div class="acts"><span class="dist">${fmtD(s._d)}</span><a class="btn primary" href="${dir}" target="_blank" rel="noopener">길찾기</a><a class="btn" href="${q}" target="_blank" rel="noopener">구글맵</a></div></article>`;};
+  let h=curList.map(card).join('');
+  if(osm.length) h+=osm.map(card).join('');
+  else h+=`<div class="small muted" style="padding:4px 2px">${osmFor===null?'주변 주류점을 찾는 중…':'지도 검색 결과가 없거나 불러오지 못했어요. 아래 구글맵 버튼을 쓰세요.'}</div>`;
+  $('nearby').innerHTML=h;
+}
+let osmTimer=null;
+function searchOSM(){
+  const key=here.lat.toFixed(3)+','+here.lng.toFixed(3); if(osmFor===key) return;
+  clearTimeout(osmTimer); osmTimer=setTimeout(async()=>{
+    try{
+      const q=`[out:json][timeout:15];nwr["shop"~"^(alcohol|wine|beverages)$"](around:1500,${here.lat},${here.lng});out center 60;`;
+      const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}});
+      const j=await r.json();
+      OSM=j.elements.map(e=>{const t=e.tags||{};const lat=e.lat??e.center?.lat, lng=e.lon??e.center?.lon;
+        return {name:t['name:ko']||t.name||t['name:en']||t['name:ja']||'이름 없는 주류점',jp:t['name:ja']||t.name||'',lat,lng,hours:t.opening_hours||'',type:t.shop==='wine'?'와인':t.shop==='beverages'?'음료·주류':'주류점',brand:t.brand||''};}).filter(o=>o.lat&&o.lng);
+      try{localStorage.setItem('osm:'+key,JSON.stringify(OSM))}catch(e){}
+    }catch(e){try{OSM=JSON.parse(localStorage.getItem('osm:'+key)||'[]')}catch(_){OSM=[]}}
+    osmFor=key; renderNearby(); if(layer) drawExtra();
+  },400);
+}
+function drawExtra(){
+  if(!window.L||!map) return;
+  if(drawExtra.g) drawExtra.g.clearLayers(); else drawExtra.g=L.layerGroup().addTo(map);
+  const {curList,osm}=nearbyRows();
+  curList.forEach(s=>L.marker([s.lat,s.lng],{icon:L.divIcon({className:'',html:'<div class="mk s">★</div>',iconSize:[18,18],iconAnchor:[9,9]})}).bindTooltip(s.name).addTo(drawExtra.g));
+  osm.forEach(s=>L.marker([s.lat,s.lng],{icon:L.divIcon({className:'',html:'<div class="mk o"></div>',iconSize:[12,12],iconAnchor:[6,6]})}).bindTooltip(s.name).addTo(drawExtra.g));
 }
 
 function drawMap(rows){
@@ -250,6 +315,7 @@ function drawMap(rows){
   meMarker=L.marker([here.lat,here.lng],{icon:L.divIcon({className:'',html:'<div class="me"></div>',iconSize:[16,16],iconAnchor:[8,8]}),zIndexOffset:1000}).addTo(map);
   const near=rows.slice(0,4).map(([s])=>[s.lat,s.lng]).concat([[here.lat,here.lng]]);
   map.fitBounds(L.latLngBounds(near).pad(0.25),{maxZoom:16});
+  drawExtra();
 }
 
 function renderMarket(){
@@ -279,15 +345,15 @@ $('price').addEventListener('input',renderCalc);$('tf').addEventListener('change
 async function load(force){
   const q='?t='+(force?Date.now():Math.floor(Date.now()/300000));
   try{
-    const [a,b,c]=await Promise.all([fetch('data/stores.json'+q).then(r=>r.json()),fetch('data/status.json'+q,{cache:force?'no-store':'default'}).then(r=>r.json()),fetch('data/history.json'+q).then(r=>r.json()).catch(()=>[])]);
-    STORES=a;STATUS=b;HIST=c;
+    const [a,b,c,d]=await Promise.all([fetch('data/stores.json'+q).then(r=>r.json()),fetch('data/status.json'+q,{cache:force?'no-store':'default'}).then(r=>r.json()),fetch('data/history.json'+q).then(r=>r.json()).catch(()=>[]),fetch('data/shops.json'+q).then(r=>r.json()).catch(()=>({shops:[]}))]);
+    STORES=a;STATUS=b;HIST=c;SHOPS=(d.shops||[]).filter(s=>s.lat&&s.lng);
     $('fresh').textContent=`재고 ${ago(STATUS.updatedAt)} 확인${STATUS.seed?' (초기 데이터)':''}`;
     renderMarket();
     if(!here){fallback('일정표 기준');locate(false);} else render();
     if(force) toast('최신 정보로 바꿨어요');
   }catch(e){$('fresh').textContent='데이터를 불러오지 못했어요. 연결을 확인하세요';}
 }
-$('refresh').addEventListener('click',()=>{load(true);if(hereMode==='gps')locate(false);});
+$('refresh').addEventListener('click',()=>{osmFor=null;load(true);if(hereMode==='gps')locate(false);});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&STATUS){const age=(Date.now()-new Date(STATUS.updatedAt))/60000;if(age>30)load(true);}});
 load(false);
 if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
