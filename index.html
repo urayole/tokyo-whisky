@@ -116,7 +116,7 @@ footer a{color:inherit}
   <section class="list" id="list"></section>
 
   <h2 class="sec">근처 주류점</h2>
-  <div class="small muted" style="margin:-8px 2px 0">재고 정보는 없지만 들러볼 만한 곳입니다. <b>추천</b>은 일본 위스키 진열로 알려진 곳, <b>지도 검색</b>은 지금 위치 반경 1.5km의 주류 판매점(OpenStreetMap)입니다.</div>
+  <div class="small muted" style="margin:-8px 2px 0">재고 정보는 없지만 들러볼 만한 곳입니다. 별 3개(<b>위스키 강함</b>)일수록 일본 위스키 진열이 많은 곳, <b>지도 검색</b>은 지금 위치 반경 1.5km의 주류 판매점(OpenStreetMap)입니다.</div>
   <section class="list" id="nearby"></section>
   <a class="btn" id="gmore" href="#" target="_blank" rel="noopener" style="justify-self:start">구글맵에서 근처 주류점 더 찾기</a>
 
@@ -157,6 +157,7 @@ function fmtD(m){return m<1000?Math.round(m/10)*10+'m':(m/1000).toFixed(m<10000?
 function walk(m){const min=Math.round(m*1.3/80);return min<=40?`도보 ${min}분`:'전철 이용';}
 function openState(s){
   const j=jstNow(); if(s.closed.includes(j.wd)) return {open:false,txt:'오늘 휴무',cls:'bad'};
+  if(s.open==='00:00'&&s.close==='24:00') return {open:true,txt:'24시간 영업',cls:'good'};
   const [oh,om]=s.open.split(':').map(Number),[ch,cm]=s.close.split(':').map(Number);
   const now=j.h*60+j.mi, o=oh*60+om; let c=ch*60+cm; const overnight=c<=o;
   const isOpen= overnight ? (now>=o||now<c) : (now>=o&&now<c);
@@ -266,7 +267,7 @@ function renderNearby(){
     const dir=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.lat+','+s.lng)}&travelmode=walking`;
     const q=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((s.jp||s.name)+' '+(s.addr||''))}`;
     return `<article class="card shop"><div class="body">
-      <h3>${esc(s.name)}${s._src==='cur'?' <span class="pill warn">추천</span>':' <span class="pill">지도 검색</span>'}</h3>
+      <h3>${esc(s.name)}${s._src==='cur'?(s.whisky>=3?' <span class="pill warn">위스키 강함</span>':' <span class="pill">알려진 곳</span>'):' <span class="pill">지도 검색</span>'}</h3>
       ${s.jp&&s.jp!==s.name?`<div class="small muted">${esc(s.jp)}</div>`:''}
       <div class="row small" style="margin-top:3px">${s.type?`<span class="pill">${esc(s.type)}</span>`:''}${s.whisky?`<span class="stars" title="일본 위스키 진열">${'★'.repeat(s.whisky)}${'☆'.repeat(3-s.whisky)}</span>`:''}${os?`<span class="pill ${os.cls}">${os.txt}</span>`:''}${s.taxFree===true?'<span class="pill good">면세</span>':''}</div>
       ${s.note?`<div class="small muted" style="margin-top:3px">${esc(s.note)}</div>`:''}
