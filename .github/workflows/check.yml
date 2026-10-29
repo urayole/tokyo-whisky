@@ -1,0 +1,45 @@
+name: check-stock
+
+on:
+  schedule:
+    - cron: "45 23 * * *"     # every day 08:45 JST
+    - cron: "7 * 18-21 11 *"  # hourly; the script only acts 11/19–21 07:00–23:00 JST
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: "Print page snippets"
+        required: false
+        default: "0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: check-stock
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check shops
+        run: python scripts/check.py
+        env:
+          EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+          DEBUG: ${{ github.event.inputs.debug }}
+      - name: Commit data
+        if: always()
+        run: |
+          git config user.name "stock-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/status.json data/history.json
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m "data: $(TZ=Asia/Tokyo date '+%m/%d %H:%M') JST"
+          git pull --rebase --autostash origin main
+          git push

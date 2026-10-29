@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>야마자키 12년 근처</title>
+<meta name="description" content="도쿄에서 지금 내 주변 야마자키 12년 재고와 가격">
+<meta name="theme-color" content="#1d1a15">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="야마자키12">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+/* Mobile-first tool: location bar, best pick, map, stores by distance, price check, market. */
+:root{
+  --bg:#f3f1ec; --surface:#fffdf9; --ink:#22201c; --muted:#6b6458; --line:#ddd6c9; --chip:#ebe6dc;
+  --amber:#a8650f; --amber-soft:#f4e3c8; --good:#2f7a3d; --good-soft:#dcefdc; --warn:#946400; --warn-soft:#f6ebc8; --bad:#b0372b; --bad-soft:#f6dcd7;
+  --font:"Hiragino Sans","Apple SD Gothic Neo","Noto Sans KR","Noto Sans JP",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#15130f; --surface:#1d1a15; --ink:#ece6da; --muted:#a59c8c; --line:#353026; --chip:#2a261f;
+  --amber:#e0a04a; --amber-soft:#3a2b16; --good:#7fcb88; --good-soft:#1f3322; --warn:#e2bf5c; --warn-soft:#3a3218; --bad:#f08a7c; --bad-soft:#3d221e;
+  color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);padding:env(safe-area-inset-top,0) 0 calc(env(safe-area-inset-bottom,0) + 24px)}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px;display:grid;gap:14px}
+header{position:sticky;top:0;z-index:500;background:var(--bg);padding:12px 14px 10px;border-bottom:1px solid var(--line);padding-top:calc(env(safe-area-inset-top,0) + 10px)}
+.hrow{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:10px}
+header h1{font-size:18px;margin:0;flex:1;line-height:1.2}
+header h1 small{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+button{font:inherit;color:inherit}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.iconbtn:active{transform:scale(.97)}
+.loc{max-width:720px;margin:8px auto 0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.loc::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 11px;font-size:13px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.gps{border-color:var(--amber);color:var(--amber);font-weight:600}
+.chip.gps[aria-pressed="true"]{background:var(--amber);color:#fff}
+.where{max-width:720px;margin:6px auto 0;font-size:12.5px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.best{border:0;background:var(--amber-soft)}
+.best .lbl{font-size:12px;font-weight:700;color:var(--amber);letter-spacing:.04em}
+.best h2{margin:4px 0 2px;font-size:19px}
+.price{font:700 22px/1.2 var(--mono)}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;border-radius:10px;padding:9px 12px;font-size:13.5px;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-height:40px}
+.btn.primary{background:var(--amber);border-color:var(--amber);color:#fff}
+#map{height:36vh;min-height:220px;border-radius:14px;border:1px solid var(--line);z-index:1}
+.list{display:grid;gap:10px}
+.store{display:grid;gap:4px}
+.store .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.store h3{margin:0;font-size:16px;line-height:1.3}
+.store .jp{font-size:12px;color:var(--muted)}
+.dist{font:600 13px var(--mono);color:var(--muted);white-space:nowrap;text-align:right}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--ink)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.stockline{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-top:2px}
+.stockline .price{font-size:18px}
+details summary{cursor:pointer;font-weight:600}
+h2.sec{font-size:15px;margin:6px 2px 0}
+.calc .yen{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);padding:0 12px}
+.calc .yen span{font:600 20px var(--mono);color:var(--muted)}
+.calc input[type=text]{border:0;background:transparent;font:700 26px var(--mono);color:var(--ink);width:100%;padding:10px 6px;outline:none}
+.verdict{border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--chip)}
+.verdict.good{background:var(--good-soft)} .verdict.good b{color:var(--good)}
+.verdict.ok{background:var(--warn-soft)} .verdict.ok b{color:var(--warn)}
+.verdict.bad{background:var(--bad-soft)} .verdict.bad b{color:var(--bad)}
+dl.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:8px 0 0;font-size:13.5px}
+dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;font-family:var(--mono)}
+.spark{width:100%;height:70px;display:block}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0) + 18px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.leaflet-container{background:var(--chip);font:inherit}
+.mk{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 12px var(--mono);color:#fff;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.mk.g{background:#2f7a3d}.mk.w{background:#b07a00}.mk.n{background:#7d7466}.mk.b{background:#b0372b}
+.me{width:16px;height:16px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 6px rgba(26,115,232,.25)}
+footer{font-size:12px;color:var(--muted);line-height:1.6}
+footer a{color:inherit}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1>야마자키 12년 근처<small id="fresh">재고 정보를 불러오는 중</small></h1>
+    <button class="iconbtn" id="refresh" type="button">새로고침</button>
+  </div>
+  <div class="loc" id="chips" role="group" aria-label="내 위치"></div>
+  <div class="where" id="where">위치를 확인하는 중</div>
+</header>
+
+<main class="wrap" style="margin-top:12px">
+  <section class="card best" id="best" aria-live="polite"></section>
+  <div id="map" role="img" aria-label="주변 매장 지도"></div>
+  <h2 class="sec">가까운 순서</h2>
+  <section class="list" id="list"></section>
+
+  <h2 class="sec">이 가격, 사도 될까?</h2>
+  <section class="card calc">
+    <div class="small muted" style="margin-bottom:6px">매장 가격표(세금 포함)를 넣으세요.</div>
+    <div class="yen"><span>¥</span><input id="price" type="text" inputmode="numeric" autocomplete="off" placeholder="26400" aria-label="매장 가격"></div>
+    <label class="row small" style="margin-top:8px"><input type="checkbox" id="tf" checked> 면세(소비세 10% 환급) 매장</label>
+    <div class="verdict" id="verdict"><span class="muted small">가격을 넣으면 판단해 드립니다.</span></div>
+  </section>
+
+  <h2 class="sec">온라인 시세</h2>
+  <section class="card" id="market"></section>
+
+  <footer>
+    재고·가격은 GitHub Actions가 판매처 페이지를 읽어 기록합니다. 여행 전에는 매일 08:45, 11/19–21에는 07–23시 매시 7분에 확인합니다. 온라인 재고는 매장 진열과 다를 수 있으니 출발 전에 전화로 확인하세요.
+    매장 재고를 공개하지 않는 곳(요도바시, 빅카메라 등)은 가격 확인용으로만 표시합니다.<br>
+    <a href="https://claude.ai/artifact/YNk1dA7AyMmrMgrPmYJrAW" target="_blank" rel="noopener">야마자키 12년 레이더(목격 가격 공유)</a> ·
+    <a href="https://claude.ai/artifact/E8QkMFPD1NL637i3UwcN5s" target="_blank" rel="noopener">여행 지도</a> ·
+    <a href="https://github.com/urayole/tokyo-whisky" target="_blank" rel="noopener">소스</a>
+  </footer>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtY=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
+const LIST=17600, FX=8.4;
+let STORES=null, STATUS=null, HIST=[], here=null, hereMode='plan', map, layer, meMarker;
+
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2200);}
+function jstNow(){const d=new Date(Date.now()+9*3600e3);return {y:d.getUTCFullYear(),mo:d.getUTCMonth()+1,d:d.getUTCDate(),h:d.getUTCHours(),mi:d.getUTCMinutes(),wd:d.getUTCDay(),iso:d.toISOString().slice(0,16)};}
+function ago(iso){if(!iso)return '';const t=new Date(iso);const m=Math.round((Date.now()-t)/60000);if(isNaN(m))return '';if(m<1)return '방금';if(m<60)return m+'분 전';const h=Math.round(m/60);if(h<48)return h+'시간 전';return Math.round(h/24)+'일 전';}
+function dist(a,b){const R=6371e3,r=Math.PI/180;const dlat=(b.lat-a.lat)*r,dlng=(b.lng-a.lng)*r;const x=Math.sin(dlat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dlng/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
+function fmtD(m){return m<1000?Math.round(m/10)*10+'m':(m/1000).toFixed(m<10000?1:0)+'km';}
+function walk(m){const min=Math.round(m*1.3/80);return min<=40?`도보 ${min}분`:'전철 이용';}
+function openState(s){
+  const j=jstNow(); if(s.closed.includes(j.wd)) return {open:false,txt:'오늘 휴무',cls:'bad'};
+  const [oh,om]=s.open.split(':').map(Number),[ch,cm]=s.close.split(':').map(Number);
+  const now=j.h*60+j.mi, o=oh*60+om; let c=ch*60+cm; const overnight=c<=o;
+  const isOpen= overnight ? (now>=o||now<c) : (now>=o&&now<c);
+  if(isOpen){const left=((overnight&&now>=o)?c+1440:c)-now;return {open:true,txt:left<=60?`${left}분 뒤 마감`:`${s.close}까지 영업`,cls:left<=60?'warn':'good'};}
+  if(!overnight&&now<o) return {open:false,txt:`${s.open} 개점`,cls:'warn'};
+  return {open:false,txt:'영업 종료',cls:'bad'};
+}
+function stockOf(s){
+  if(s.kind!=='stock'||!STATUS) return {kind:'none'};
+  const src=STATUS.sources?.[s.source]; if(!src) return {kind:'none'};
+  return {kind:'data',price:src.price,available:src.available,count:src.count,priceBox:src.priceBox,ok:src.ok,checkedAt:src.checkedAt,outlet:src.outletPrice,outletAvail:src.outletAvailable};
+}
+function eff(p,tf){return tf? p/1.1 : p}
+function judge(e){const low=STATUS?.sources?.market?.kakakuLow||STATUS?.sources?.market?.yahooLow||21900;const good=low+900, ok=Math.max(good+800,24000), cap=Math.max(ok+800,25000);
+  if(e<=good) return ['good','사세요','온라인 최저가 수준']; if(e<=ok) return ['ok','사도 좋아요','온라인보다 조금 비싸지만 바로 손에 쥠']; if(e<=cap) return ['ok','고민되는 가격','한 곳 더 보고 없으면 구매']; return ['bad','패스','시세보다 비쌈'];}
+
+function currentPlan(){
+  const j=jstNow(); const now=`${j.y}-${String(j.mo).padStart(2,'0')}-${String(j.d).padStart(2,'0')}T${String(j.h).padStart(2,'0')}:${String(j.mi).padStart(2,'0')}`;
+  const it=(STORES.itinerary||[]).find(x=>now>=x.from&&now<x.to);
+  return STORES.areas.find(a=>a.id===(it?it.area:'hotel'));
+}
+function setHere(p,mode,label){here=p;hereMode=mode;renderChips();$('where').textContent=label;render();}
+
+function renderChips(){
+  const areas=STORES.areas;
+  $('chips').innerHTML=`<button class="chip gps" type="button" data-a="gps" aria-pressed="${hereMode==='gps'}">현재 위치</button>`+
+    areas.map(a=>`<button class="chip" type="button" data-a="${a.id}" aria-pressed="${hereMode==='area:'+a.id}">${esc(a.name)}</button>`).join('');
+}
+$('chips').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const id=b.dataset.a;
+  if(id==='gps'){locate(true);return;}
+  const a=STORES.areas.find(x=>x.id===id); setHere({lat:a.lat,lng:a.lng},'area:'+id,`${a.name} 기준으로 보는 중`);});
+
+function locate(user){
+  if(!('geolocation' in navigator)){fallback('이 브라우저는 위치를 지원하지 않아요');return;}
+  $('where').textContent='현재 위치를 찾는 중…';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const p={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    const nearest=STORES.areas.map(a=>[a,dist(p,a)]).sort((x,y)=>x[1]-y[1])[0];
+    const far=nearest[1]>30000;
+    setHere(p,'gps',far?`현재 위치 기준 (도쿄에서 ${fmtD(nearest[1])} 떨어져 있어요)`:`현재 위치 기준 · ${nearest[0].name} 근처 · 정확도 ${Math.round(pos.coords.accuracy)}m`);
+  },err=>{fallback(err.code===1?'위치 권한이 꺼져 있어요. 일정표 기준으로 보여드릴게요':'위치를 찾지 못했어요. 일정표 기준으로 보여드릴게요'); if(user) toast('설정에서 브라우저 위치 권한을 허용해 주세요');},
+  {enableHighAccuracy:true,timeout:9000,maximumAge:60000});
+}
+function fallback(msg){const a=currentPlan();setHere({lat:a.lat,lng:a.lng},'area:'+a.id,`${msg} · ${a.name}`);}
+
+function storeCard(s,d,best){
+  const os=openState(s), st=stockOf(s);
+  let stock='';
+  if(st.kind==='data'){
+    const e=st.price?eff(st.price,s.taxFree===true):null;
+    const avail=st.available===true?'<span class="pill good">온라인 재고 있음</span>':st.available===false?'<span class="pill bad">품절</span>':'<span class="pill">재고 불명</span>';
+    stock=`<div class="stockline">${st.price?`<span class="price">${fmtY(st.price)}</span>`:''}${s.taxFree===true&&st.price?`<span class="small muted">환급 후 ${fmtY(e)}</span>`:''}${avail}${st.count?`<span class="small muted">${st.count}병</span>`:''}</div>
+      <div class="small muted">${st.ok===false?'최근 확인 실패 · ':''}${ago(st.checkedAt)} 확인${st.outlet?` · 아울렛 ${fmtY(st.outlet)}`:''}${st.priceBox?` · 상자 있음 ${fmtY(st.priceBox)}`:''}</div>`;
+  } else {
+    stock=`<div class="small muted">재고를 공개하지 않는 매장 · 가격만 확인</div>`;
+  }
+  const dir=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.lat+','+s.lng)}&travelmode=walking`;
+  return `<article class="card store" data-id="${s.id}">
+    <div class="top"><div><h3>${esc(s.name)}</h3><div class="jp">${esc(s.jp)}</div></div><div class="dist">${fmtD(d)}<br><span style="font-weight:400">${walk(d)}</span></div></div>
+    <div class="row"><span class="pill ${os.cls}">${os.txt}</span>${s.taxFree===true?'<span class="pill good">면세</span>':s.taxFree===null?'<span class="pill">면세 미확인</span>':''}${best?'<span class="pill warn">지금 추천</span>':''}</div>
+    ${stock}
+    <div class="small muted">${esc(s.note)}</div>
+    <div class="btns"><a class="btn primary" href="${dir}" target="_blank" rel="noopener">길찾기</a>${s.tel?`<a class="btn" href="tel:${s.tel.replace(/-/g,'')}">전화 ${esc(s.tel)}</a>`:''}<a class="btn" href="${s.url}" target="_blank" rel="noopener">판매 페이지</a></div>
+  </article>`;
+}
+
+function pickBest(rows){
+  const c=rows.filter(([s,d])=>{const st=stockOf(s);const os=openState(s);return st.kind==='data'&&st.available!==false&&st.price&&(os.open||os.cls==='warn');})
+    .map(([s,d])=>{const st=stockOf(s);return {s,d,e:eff(st.price,s.taxFree===true),st};});
+  c.sort((a,b)=>(a.e+a.d*0.3)-(b.e+b.d*0.3)); // ¥300 per km of extra travel
+  return c[0]||null;
+}
+
+function render(){
+  if(!STORES||!here) return;
+  const rows=STORES.stores.map(s=>[s,dist(here,s)]).sort((a,b)=>a[1]-b[1]);
+  const best=pickBest(rows);
+  if(best){
+    const [cls,h]=judge(best.e);
+    $('best').innerHTML=`<div class="lbl">지금 가장 좋은 선택</div><h2>${esc(best.s.name)}</h2>
+      <div class="row"><span class="price">${fmtY(best.st.price)}</span>${best.s.taxFree===true?`<span class="small muted">환급 후 ${fmtY(best.e)}</span>`:''}<span class="pill ${cls==='good'?'good':cls==='ok'?'warn':'bad'}">${h}</span></div>
+      <div class="small muted" style="margin-top:4px">${fmtD(best.d)} · ${walk(best.d)} · ${openState(best.s).txt} · 한국 시세보다 약 ₩${Math.round((376000-best.e*FX)/10000)}만 원 저렴</div>
+      <div class="btns"><a class="btn primary" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(best.s.lat+','+best.s.lng)}&travelmode=transit" target="_blank" rel="noopener">길찾기</a>${best.s.tel?`<a class="btn" href="tel:${best.s.tel.replace(/-/g,'')}">재고 전화 확인</a>`:''}</div>`;
+  } else {
+    $('best').innerHTML=`<div class="lbl">지금 가장 좋은 선택</div><h2>지금 열려 있는 재고 매장이 없어요</h2><div class="small muted">영업시간이 지났거나 온라인 재고가 품절입니다. 아래 목록에서 내일 갈 곳을 고르세요.</div>`;
+  }
+  $('list').innerHTML=rows.map(([s,d])=>storeCard(s,d,best&&best.s===s)).join('');
+  drawMap(rows);
+}
+
+function drawMap(rows){
+  if(!window.L){$('map').innerHTML='<div style="padding:16px" class="small muted">지도를 불러오지 못했어요. 목록은 그대로 쓸 수 있습니다.</div>';return;}
+  if(!map){
+    map=L.map('map',{zoomControl:false,attributionControl:true});
+    const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+    L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark?'dark_all':'light_all'}/{z}/{x}/{y}{r}.png`,{maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
+    layer=L.layerGroup().addTo(map);
+  }
+  layer.clearLayers();
+  rows.forEach(([s,d],i)=>{const st=stockOf(s);const cls=st.kind!=='data'?'n':st.available===false?'b':openState(s).open?'g':'w';
+    L.marker([s.lat,s.lng],{icon:L.divIcon({className:'',html:`<div class="mk ${cls}">${i+1}</div>`,iconSize:[26,26],iconAnchor:[13,13]})})
+     .on('click',()=>{const el=document.querySelector(`[data-id="${s.id}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});}).addTo(layer);});
+  if(meMarker) meMarker.remove();
+  meMarker=L.marker([here.lat,here.lng],{icon:L.divIcon({className:'',html:'<div class="me"></div>',iconSize:[16,16],iconAnchor:[8,8]}),zIndexOffset:1000}).addTo(map);
+  const near=rows.slice(0,4).map(([s])=>[s.lat,s.lng]).concat([[here.lat,here.lng]]);
+  map.fitBounds(L.latLngBounds(near).pad(0.25),{maxZoom:16});
+}
+
+function renderMarket(){
+  const m=STATUS?.sources?.market||{};
+  const pts=HIST.filter(h=>h.kakaku||h.yahoo);
+  let spark='';
+  if(pts.length>1){const vals=pts.map(h=>h.kakaku||h.yahoo);const lo=Math.min(...vals)-300,hi=Math.max(...vals)+300;const W=300,H=60;
+    const xy=vals.map((v,i)=>[i/(vals.length-1)*W,H-(v-lo)/(hi-lo)*H]);
+    spark=`<svg class="spark" viewBox="0 0 ${W} ${H+10}" preserveAspectRatio="none"><polyline fill="none" stroke="var(--amber)" stroke-width="2" points="${xy.map(p=>p.join(',')).join(' ')}"/><circle cx="${xy.at(-1)[0]}" cy="${xy.at(-1)[1]}" r="3.5" fill="var(--amber)"/></svg>`;}
+  $('market').innerHTML=`<dl class="kv">
+    <dt>카카쿠 최저 (배송비 별도)</dt><dd>${m.kakakuLow?fmtY(m.kakakuLow):'–'}</dd>
+    <dt>야후 쇼핑 최저</dt><dd>${m.yahooLow?fmtY(m.yahooLow):'–'}</dd>
+    <dt>아마존 제3자</dt><dd>${m.amazon?fmtY(m.amazon):'–'}</dd>
+    <dt>메이커 정가</dt><dd>${fmtY(LIST)}</dd>
+    <dt>한국 시세</dt><dd>₩355,000–397,000</dd></dl>${spark}<div class="small muted">${ago(m.checkedAt)} 확인${m.ok===false?' · 최근 확인 실패':''}</div>`;
+}
+
+function renderCalc(){
+  const p=parseInt(($('price').value||'').replace(/[^0-9]/g,''),10);
+  if(!p){$('verdict').className='verdict';$('verdict').innerHTML='<span class="muted small">가격을 넣으면 판단해 드립니다.</span>';return;}
+  const e=eff(p,$('tf').checked),[cls,h,msg]=judge(e);
+  $('verdict').className='verdict '+cls;
+  $('verdict').innerHTML=`<b style="font-size:18px">${h}</b> <span class="small">${msg}</span><dl class="kv"><dt>환급 후 실제 가격</dt><dd>${fmtY(e)}</dd><dt>원화 (약)</dt><dd>₩${Math.round(e*FX/1000)*1000>0?(Math.round(e*FX/1000)*1000).toLocaleString('ko-KR'):''}</dd><dt>한국에서 사는 것보다</dt><dd>₩${(Math.round((376000-e*FX)/1000)*1000).toLocaleString('ko-KR')} 아낌</dd></dl>`;
+}
+$('price').addEventListener('input',renderCalc);$('tf').addEventListener('change',renderCalc);
+
+async function load(force){
+  const q='?t='+(force?Date.now():Math.floor(Date.now()/300000));
+  try{
+    const [a,b,c]=await Promise.all([fetch('data/stores.json'+q).then(r=>r.json()),fetch('data/status.json'+q,{cache:force?'no-store':'default'}).then(r=>r.json()),fetch('data/history.json'+q).then(r=>r.json()).catch(()=>[])]);
+    STORES=a;STATUS=b;HIST=c;
+    $('fresh').textContent=`재고 ${ago(STATUS.updatedAt)} 확인${STATUS.seed?' (초기 데이터)':''}`;
+    renderMarket();
+    if(!here){fallback('일정표 기준');locate(false);} else render();
+    if(force) toast('최신 정보로 바꿨어요');
+  }catch(e){$('fresh').textContent='데이터를 불러오지 못했어요. 연결을 확인하세요';}
+}
+$('refresh').addEventListener('click',()=>{load(true);if(hereMode==='gps')locate(false);});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&STATUS){const age=(Date.now()-new Date(STATUS.updatedAt))/60000;if(age>30)load(true);}});
+load(false);
+if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+ "updatedAt": "2026-10-29T16:00+09:00",
+ "seed": true,
+ "sources": {
+  "linxas": {"price": 26400, "priceBox": 27500, "available": true, "count": 171, "ok": true, "checkedAt": "2026-10-29T16:00+09:00", "error": null},
+  "licasta": {"price": 22500, "available": true, "ok": true, "checkedAt": "2026-10-29T06:00+09:00", "error": null},
+  "joylab": {"price": 22500, "available": true, "outletPrice": 22200, "outletAvailable": true, "ok": true, "checkedAt": "2026-10-29T16:00+09:00", "error": null},
+  "market": {"yahooLow": 22000, "kakakuLow": 21879, "amazon": 25500, "ok": true, "checkedAt": "2026-10-29T16:00+09:00", "error": null}
+ }
+}
