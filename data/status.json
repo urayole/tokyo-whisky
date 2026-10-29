@@ -1,42 +1,41 @@
 {
- "updatedAt": "2026-10-29T17:01+09:00",
- "seed": true,
+ "updatedAt": "2026-10-29T17:02+09:00",
  "sources": {
   "linxas": {
-   "price": 17100,
-   "priceBox": 17800,
-   "available": false,
+   "price": 26400,
+   "priceBox": 27500,
+   "available": true,
    "variants": [
     {
      "title": "通常ラベル箱あり",
-     "price": 17800,
-     "available": false
+     "price": 27500,
+     "available": true
     },
     {
      "title": "通常ラベル箱なし",
-     "price": 17100,
-     "available": false
+     "price": 26400,
+     "available": true
     },
     {
      "title": "100周年　箱なし",
-     "price": 20700,
-     "available": false
+     "price": 31900,
+     "available": true
     },
     {
      "title": "100周年箱あり",
-     "price": 21400,
-     "available": false
+     "price": 33000,
+     "available": true
     }
    ],
    "ok": true,
-   "checkedAt": "2026-10-29T17:01+09:00",
+   "checkedAt": "2026-10-29T17:02+09:00",
    "error": null
   },
   "licasta": {
    "price": 22500,
    "available": true,
    "ok": true,
-   "checkedAt": "2026-10-29T17:01+09:00",
+   "checkedAt": "2026-10-29T17:02+09:00",
    "error": null
   },
   "joylab": {
@@ -45,7 +44,7 @@
    "outletPrice": 30000,
    "outletAvailable": true,
    "ok": true,
-   "checkedAt": "2026-10-29T17:01+09:00",
+   "checkedAt": "2026-10-29T17:02+09:00",
    "error": null
   },
   "market": {
@@ -53,7 +52,7 @@
    "kakakuLow": 21879,
    "amazon": 17600,
    "ok": true,
-   "checkedAt": "2026-10-29T17:01+09:00",
+   "checkedAt": "2026-10-29T17:02+09:00",
    "error": null
   }
  }
