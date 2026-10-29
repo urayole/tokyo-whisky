@@ -26,13 +26,31 @@ def log(*a):
     print(*a, flush=True)
 
 
-def fetch(url, timeout=25):
-    req = urllib.request.Request(url, headers={
+DUMP = {}
+
+
+def dump(name, html, words):
+    """In debug runs, keep short windows of the page so parsers can be tuned from the repo."""
+    if not DEBUG:
+        return
+    parts = [f"len={len(html)}"]
+    for w in words:
+        for m in list(re.finditer(re.escape(w), html))[:4]:
+            parts.append(f"--- {w} @{m.start()}\n" + html[max(0, m.start() - 300): m.start() + 300])
+    parts += ["--- ld+json\n" + b[:1500] for b in re.findall(r'<script[^>]+application/ld\+json[^>]*>(.*?)</script>', html, re.S | re.I)[:3]]
+    DUMP[name] = "\n".join(parts)
+
+
+def fetch(url, timeout=25, cookie=None):
+    headers = {
         "User-Agent": UA,
         "Accept-Language": "ja,en;q=0.8",
         "Accept": "text/html,application/json;q=0.9,*/*;q=0.8",
         "Accept-Encoding": "gzip",
-    })
+    }
+    if cookie:
+        headers["Cookie"] = cookie
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         raw = r.read()
         if r.headers.get("Content-Encoding") == "gzip":
@@ -88,7 +106,16 @@ def snippet(html, words, width=160):
 
 def check_linxas():
     url = "https://linx-as.store/products/suntory-yamazaki-12y.js"
-    p = json.loads(fetch(url))
+    jp = "localization=JP; cart_currency=JPY"
+    p = json.loads(fetch(url, cookie=jp))
+    try:
+        cur = json.loads(fetch("https://linx-as.store/cart.js", cookie=jp)).get("currency")
+    except Exception:
+        cur = None
+    if DEBUG:
+        DUMP["linxas"] = f"currency={cur}\n" + json.dumps(p.get("variants", []), ensure_ascii=False)[:3000]
+    if cur and cur != "JPY":
+        raise ValueError(f"shop answered in {cur}, not JPY")
     variants = []
     for v in p.get("variants", []):
         price = v.get("price")
@@ -107,7 +134,7 @@ def check_linxas():
         "variants": variants,
     }
     try:
-        col = fetch("https://linx-as.store/collections/yamazaki")
+        col = fetch("https://linx-as.store/collections/yamazaki", cookie="localization=JP; cart_currency=JPY")
         m = re.search(r"在庫あり\s*([0-9,]+)\s*本", col)
         if m:
             res["count"] = yen(m.group(1))
@@ -132,8 +159,7 @@ def check_licasta():
                 prices.append(yen(m.group(1)))
     if not prices:
         prices = [yen(m) for m in re.findall(r"([0-9]{2},[0-9]{3})\s*円", html) if plausible(yen(m))]
-    if DEBUG:
-        log("licasta snippets:", snippet(html, ["在庫", "price", "円"]))
+    dump("licasta", html, ["在庫", '"price"', "円"])
     if not prices:
         raise ValueError("no price found")
     sold = bool(re.search(r"在庫切れ|売り切れ|品切れ|SoldOut|OutOfStock", avail + " " + html[:200000]))
@@ -155,8 +181,7 @@ def check_joylab():
                 prices = [yen(m) for m in re.findall(r"([0-9]{2},[0-9]{3})\s*円", html) if plausible(yen(m))]
             cart = bool(re.search(r"カートに入れる|カートへ|cart_in|add_cart|btn_cart", html, re.I))
             sold = bool(re.search(r"SOLD\s*OUT|売り切れ|品切れ|在庫切れ|在庫がありません", html, re.I))
-            if DEBUG:
-                log("joylab", key, "cart", cart, "sold", sold, snippet(html, ["販売価格", "SOLD", "カート"]))
+            dump("joylab_" + key, html, ["販売価格", "円(税込)", "税込", "SOLD", "カート", "山崎"])
             out[key] = {"price": prices[0] if prices else None, "available": True if cart else (False if sold else None)}
         except Exception as e:
             log("joylab", key, "failed:", e)
@@ -182,6 +207,7 @@ def check_market():
         log("yahoo compare failed:", e)
     try:
         html = fetch("https://kakaku.com/item/K0000695153/")
+        dump("kakaku", html, ["最安価格", "lowPrice", "円"])
         m = re.search(r'"lowPrice"\s*:\s*"?([0-9,]+)', html) or re.search(r"最安価格[^0-9]{0,40}([0-9,]{6,7})", html)
         if m and plausible(yen(m.group(1))):
             res["kakakuLow"] = yen(m.group(1))
@@ -189,6 +215,7 @@ def check_market():
         log("kakaku failed:", e)
     try:
         html = fetch("https://amademeshi.info/price_yamazaki12/")
+        dump("amademeshi", html, ["現在", "最安", "円"])
         m = re.search(r"現在[^0-9]{0,30}([0-9]{2},[0-9]{3})", html) or re.search(r"([0-9]{2},[0-9]{3})\s*円", html)
         if m and plausible(yen(m.group(1))):
             res["amazon"] = yen(m.group(1))
@@ -233,6 +260,12 @@ def main():
             status["sources"][name] = prev
             log("FAIL", name, e)
     status["updatedAt"] = NOW.isoformat(timespec="minutes")
+    status.pop("seed", None)
+    if DEBUG and DUMP:
+        os.makedirs(os.path.join(ROOT, "data", "debug"), exist_ok=True)
+        for k, v in DUMP.items():
+            with open(os.path.join(ROOT, "data", "debug", k + ".txt"), "w", encoding="utf-8") as f:
+                f.write(v)
     with open(STATUS, "w", encoding="utf-8") as f:
         json.dump(status, f, ensure_ascii=False, indent=1)
 
