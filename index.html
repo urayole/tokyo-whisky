@@ -112,7 +112,7 @@ footer a{color:inherit}
 <main class="wrap" style="margin-top:12px">
   <section class="card best" id="best" aria-live="polite"></section>
   <div id="map" role="img" aria-label="주변 매장 지도"></div>
-  <h2 class="sec">재고·가격이 보이는 곳 (가까운 순)</h2>
+  <h2 class="sec">야마자키 12년 판매처 (가까운 순)</h2>
   <section class="list" id="list"></section>
 
   <h2 class="sec">근처 주류점</h2>
@@ -211,7 +211,7 @@ function storeCard(s,d,best){
     stock=`<div class="stockline">${st.price?`<span class="price">${fmtY(st.price)}</span>`:''}${s.taxFree===true&&st.price?`<span class="small muted">환급 후 ${fmtY(e)}</span>`:''}${avail}${st.count?`<span class="small muted">${st.count}병</span>`:''}</div>
       <div class="small muted">${st.ok===false?'최근 확인 실패 · ':''}${ago(st.checkedAt)} 확인${st.outlet?` · 아울렛 ${fmtY(st.outlet)}`:''}${st.priceBox?` · 상자 있음 ${fmtY(st.priceBox)}`:''}</div>`;
   } else {
-    stock=`<div class="small muted">재고를 공개하지 않는 매장 · 가격만 확인</div>`;
+    stock='';
   }
   const dir=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.lat+','+s.lng)}&travelmode=walking`;
   return `<article class="card store" data-id="${s.id}">
@@ -239,6 +239,7 @@ function render(){
     $('best').innerHTML=`<div class="lbl">지금 가장 좋은 선택</div><h2>${esc(best.s.name)}</h2>
       <div class="row"><span class="price">${fmtY(best.st.price)}</span>${best.s.taxFree===true?`<span class="small muted">환급 후 ${fmtY(best.e)}</span>`:''}<span class="pill ${cls==='good'?'good':cls==='ok'?'warn':'bad'}">${h}</span></div>
       <div class="small muted" style="margin-top:4px">${fmtD(best.d)} · ${walk(best.d)} · ${openState(best.s).txt} · 한국 시세보다 약 ₩${Math.round((376000-best.e*FX)/10000)}만 원 저렴</div>
+      <div class="small" style="margin-top:6px">온라인 재고 기준이라 매장 진열과 다를 수 있어요. ${best.s.tel?'가기 전에 전화로 확인하세요.':'매장 전화번호가 없어 방문 전 확인이 어렵습니다.'}</div>
       <div class="btns"><a class="btn primary" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(best.s.lat+','+best.s.lng)}&travelmode=transit" target="_blank" rel="noopener">길찾기</a>${best.s.tel?`<a class="btn" href="tel:${best.s.tel.replace(/-/g,'')}">재고 전화 확인</a>`:''}</div>`;
   } else {
     $('best').innerHTML=`<div class="lbl">지금 가장 좋은 선택</div><h2>지금 열려 있는 재고 매장이 없어요</h2><div class="small muted">영업시간이 지났거나 온라인 재고가 품절입니다. 아래 목록에서 내일 갈 곳을 고르세요.</div>`;
