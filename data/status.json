@@ -1,10 +1,60 @@
 {
- "updatedAt": "2026-10-29T16:00+09:00",
+ "updatedAt": "2026-10-29T17:01+09:00",
  "seed": true,
  "sources": {
-  "linxas": {"price": 26400, "priceBox": 27500, "available": true, "count": 171, "ok": true, "checkedAt": "2026-10-29T16:00+09:00", "error": null},
-  "licasta": {"price": 22500, "available": true, "ok": true, "checkedAt": "2026-10-29T06:00+09:00", "error": null},
-  "joylab": {"price": 22500, "available": true, "outletPrice": 22200, "outletAvailable": true, "ok": true, "checkedAt": "2026-10-29T16:00+09:00", "error": null},
-  "market": {"yahooLow": 22000, "kakakuLow": 21879, "amazon": 25500, "ok": true, "checkedAt": "2026-10-29T16:00+09:00", "error": null}
+  "linxas": {
+   "price": 17100,
+   "priceBox": 17800,
+   "available": false,
+   "variants": [
+    {
+     "title": "通常ラベル箱あり",
+     "price": 17800,
+     "available": false
+    },
+    {
+     "title": "通常ラベル箱なし",
+     "price": 17100,
+     "available": false
+    },
+    {
+     "title": "100周年　箱なし",
+     "price": 20700,
+     "available": false
+    },
+    {
+     "title": "100周年箱あり",
+     "price": 21400,
+     "available": false
+    }
+   ],
+   "ok": true,
+   "checkedAt": "2026-10-29T17:01+09:00",
+   "error": null
+  },
+  "licasta": {
+   "price": 22500,
+   "available": true,
+   "ok": true,
+   "checkedAt": "2026-10-29T17:01+09:00",
+   "error": null
+  },
+  "joylab": {
+   "price": 30000,
+   "available": true,
+   "outletPrice": 30000,
+   "outletAvailable": true,
+   "ok": true,
+   "checkedAt": "2026-10-29T17:01+09:00",
+   "error": null
+  },
+  "market": {
+   "yahooLow": 22000,
+   "kakakuLow": 21879,
+   "amazon": 17600,
+   "ok": true,
+   "checkedAt": "2026-10-29T17:01+09:00",
+   "error": null
+  }
  }
 }
