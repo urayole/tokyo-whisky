@@ -270,6 +270,9 @@ function renderNearby(){
       ${s.jp&&s.jp!==s.name?`<div class="small muted">${esc(s.jp)}</div>`:''}
       <div class="row small" style="margin-top:3px">${s.type?`<span class="pill">${esc(s.type)}</span>`:''}${s.whisky?`<span class="stars" title="일본 위스키 진열">${'★'.repeat(s.whisky)}${'☆'.repeat(3-s.whisky)}</span>`:''}${os?`<span class="pill ${os.cls}">${os.txt}</span>`:''}${s.taxFree===true?'<span class="pill good">면세</span>':''}</div>
       ${s.note?`<div class="small muted" style="margin-top:3px">${esc(s.note)}</div>`:''}
+      ${s.closedNote?`<div class="small muted">${esc(s.closedNote)}</div>`:''}
+      ${s.tel?`<div class="small"><a href="tel:${s.tel.replace(/-/g,'')}" style="color:inherit">${esc(s.tel)}</a></div>`:''}
+      ${s.unverified?'<div class="small muted">영업 정보는 제3자 자료라 다를 수 있어요</div>':''}
       ${s.hours?`<div class="small muted">영업 ${esc(s.hours)}</div>`:''}
     </div><div class="acts"><span class="dist">${fmtD(s._d)}</span><a class="btn primary" href="${dir}" target="_blank" rel="noopener">길찾기</a><a class="btn" href="${q}" target="_blank" rel="noopener">구글맵</a></div></article>`;};
   let h=curList.map(card).join('');
