@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-10-29T17:04+09:00",
+ "updatedAt": "2026-10-30T11:56+09:00",
  "sources": {
   "linxas": {
    "price": 26400,
@@ -28,14 +28,14 @@
     }
    ],
    "ok": true,
-   "checkedAt": "2026-10-29T17:04+09:00",
+   "checkedAt": "2026-10-30T11:56+09:00",
    "error": null
   },
   "licasta": {
    "price": 22500,
    "available": true,
    "ok": true,
-   "checkedAt": "2026-10-29T17:04+09:00",
+   "checkedAt": "2026-10-30T11:56+09:00",
    "error": null
   },
   "joylab": {
@@ -44,15 +44,15 @@
    "outletPrice": 22200,
    "outletAvailable": true,
    "ok": true,
-   "checkedAt": "2026-10-29T17:04+09:00",
+   "checkedAt": "2026-10-30T11:56+09:00",
    "error": null
   },
   "market": {
    "yahooLow": 22000,
-   "kakakuLow": 21879,
+   "kakakuLow": 21780,
    "amazon": 25500,
    "ok": true,
-   "checkedAt": "2026-10-29T17:04+09:00",
+   "checkedAt": "2026-10-30T11:56+09:00",
    "error": null
   }
  }
